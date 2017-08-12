@@ -1,0 +1,51 @@
+plugins {
+    id 'groovy'
+    id 'idea'
+    id 'java-gradle-plugin'
+    id 'com.gradle.plugin-publish' version '0.9.7'
+}
+
+group = 'org.gradle.crypto'
+version = '0.1.0'
+
+targetCompatibility = '1.7'
+sourceCompatibility = '1.7'
+
+// Fix a bad interaction with IntelliJ and Gradle > 4.0
+idea.module.inheritOutputDirs = true
+
+// make the publishing plugin skip checks that disallow publishing to com.gradle / org.gradle groups
+System.setProperty('gradle.publish.skip.namespace.check', 'true')
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    testCompile ('org.spockframework:spock-core:1.1-groovy-2.4') {
+        exclude module: 'groovy-all'
+    }
+}
+
+gradlePlugin {
+    plugins {
+        checksumPlugin {
+            id = "org.gradle.crypto.checksum"
+            implementationClass = "org.gradle.crypto.checksum.ChecksumPlugin"
+        }
+    }
+}
+
+pluginBundle {
+    website = 'https://github.com/gradle/gradle-checksum'
+    vcsUrl = 'https://github.com/gradle/gradle-checkusm'
+    plugins {
+        checksumPlugin {
+            id = 'org.gradle.crypto.checksum'
+            displayName = 'Checksum Plugin'
+            description = 'Create checksums for files in your build.'
+            tags = ['cryptography', 'hashing', 'checksum', 'security']
+            version = project.version
+        }
+    }
+}
