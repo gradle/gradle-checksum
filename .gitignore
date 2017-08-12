@@ -1,0 +1,6 @@
+.gradle
+/build/
+
+# IntelliJ IDEA
+.idea
+classes
