@@ -2,6 +2,7 @@
 /build/
 
 # IntelliJ IDEA
+/out/
 .idea
 *.iml
 *.ipr

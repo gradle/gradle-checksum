@@ -2,14 +2,15 @@ plugins {
     id 'groovy'
     id 'idea'
     id 'java-gradle-plugin'
+    id "nebula.facet" version "3.4.0"
     id 'com.gradle.plugin-publish' version '0.9.7'
 }
 
 group = 'org.gradle.crypto'
 version = '0.1.0'
 
-targetCompatibility = '1.7'
-sourceCompatibility = '1.7'
+targetCompatibility = '1.8'
+sourceCompatibility = '1.8'
 
 // Fix a bad interaction with IntelliJ and Gradle > 4.0
 idea.module.inheritOutputDirs = true
@@ -22,8 +23,15 @@ repositories {
 }
 
 dependencies {
-    testCompile ('org.spockframework:spock-core:1.1-groovy-2.4') {
+    implementation 'com.google.guava:guava:23.0'
+    testImplementation ('org.spockframework:spock-core:1.1-groovy-2.4') {
         exclude module: 'groovy-all'
+    }
+}
+
+facets {
+    functionalTest {
+        parentSourceSet = 'test'
     }
 }
 
@@ -34,6 +42,7 @@ gradlePlugin {
             implementationClass = "org.gradle.crypto.checksum.ChecksumPlugin"
         }
     }
+    testSourceSets sourceSets.functionalTest
 }
 
 pluginBundle {
