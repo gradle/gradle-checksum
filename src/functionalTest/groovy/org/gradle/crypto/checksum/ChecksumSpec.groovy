@@ -35,16 +35,17 @@ class ChecksumSpec extends Specification {
         }
         
         import org.gradle.crypto.checksum.Checksum
+        import java.nio.file.Paths
         
         task makeAFile {
           doLast {
-            file("build").mkdir()
-            file("build/aFile.txt") << "Hello, Checksum!" + System.lineSeparator()
+            file('build').mkdir()
+            file(Paths.get('build', 'aFile.txt')) << 'Hello, Checksum!'
           }
         }
         
         task sumAFile(type: Checksum, dependsOn: 'makeAFile') {
-          files = files("build/aFile.txt")
+          files = files(Paths.get('build', 'aFile.txt'))
         }
         """
     }
@@ -110,9 +111,9 @@ class ChecksumSpec extends Specification {
 
         where:
         algo     | sum
-        'SHA256' | '0397ecd4cc6615e6b1d7ecd3b0e5c3d882cd7b662dc0d9f0d74264088e4794e1'
-        'SHA384' | 'f5bf11a6a00b8bc8a09fcc61572e489ec9796ead02b1b11b47431496cb8090190533ba0781d86a0ff1120eafd57fc6da'
-        'SHA512' | '856fbe321f76529c9319a659cb32fb0e5cfb7888b60f42abcdbe0363eb1cd8dfb6e09b09d2587b7f0d973ff2a8c9b7d6aaece5336eda905d27dede45b75924a3'
+        'SHA256' | '17dc1d7c1912574351e67069fef64e603d435c7b04197ddb95237cc93ebbe973'
+        'SHA384' | '8c92bd249565af6c1c323450e7f2834a306da1295fa305cfece7c1af1617df6e0213f8b81c8c2765407908f7d2065ced'
+        'SHA512' | '32ae12e4d047303297158cd23a93ba5d7f531b0b8597949a800e0ed57c0d0f6463563f9cb16b99f208bca97cd7471cc4d3ae1ab2b88c026016975dff68c39eb9'
     }
 
     def 'supports overlapping output directories'() {
