@@ -5,7 +5,7 @@ A Gradle plugin for creating checksums for files in your build.
 
 ```$gradle
 plugins {
-    id 'org.gradle.crypto.checksum' version '1.0.2'
+    id 'org.gradle.crypto.checksum' version '1.0.3'
 }
 
 import org.gradle.crypto.checksum.Checksum

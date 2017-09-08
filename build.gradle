@@ -22,7 +22,7 @@ plugins {
 }
 
 group = 'org.gradle.crypto'
-version = '1.0.2'
+version = '1.0.3'
 
 targetCompatibility = '1.7'
 sourceCompatibility = '1.7'
@@ -38,7 +38,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.google.guava:guava:20.0'
+    compile 'com.google.guava:guava:20.0'
     testImplementation ('org.spockframework:spock-core:1.1-groovy-2.4') {
         exclude module: 'groovy-all'
     }
