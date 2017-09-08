@@ -135,7 +135,7 @@ public class Checksum extends DefaultTask {
         return possibleFiles;
     }
 
-    private FileCollection filesFor(Algorithm algo) {
+    private FileCollection filesFor(final Algorithm algo) {
         return getProject().fileTree(getOutputDir(), new Action<ConfigurableFileTree>() {
             @Override
             public void execute(ConfigurableFileTree files) {

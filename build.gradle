@@ -22,10 +22,10 @@ plugins {
 }
 
 group = 'org.gradle.crypto'
-version = '1.0.0'
+version = '1.0.1'
 
-targetCompatibility = '1.8'
-sourceCompatibility = '1.8'
+targetCompatibility = '1.7'
+sourceCompatibility = '1.7'
 
 // Fix a bad interaction with IntelliJ and Gradle > 4.0
 idea.module.inheritOutputDirs = true
@@ -38,7 +38,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.google.guava:guava:23.0'
+    implementation 'com.google.guava:guava:20.0'
     testImplementation ('org.spockframework:spock-core:1.1-groovy-2.4') {
         exclude module: 'groovy-all'
     }
