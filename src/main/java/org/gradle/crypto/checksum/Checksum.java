@@ -16,8 +16,6 @@
 package org.gradle.crypto.checksum;
 
 import com.google.common.hash.HashCode;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
@@ -35,17 +33,6 @@ import java.io.File;
 import java.io.IOException;
 
 public class Checksum extends DefaultTask {
-    public enum Algorithm {
-        SHA256(Hashing.sha256()),
-        SHA384(Hashing.sha384()),
-        SHA512(Hashing.sha512());
-
-        private final HashFunction hashFunction;
-
-        Algorithm(HashFunction hashFunction) {
-            this.hashFunction = hashFunction;
-        }
-    }
     private FileCollection files;
     private File outputDir;
     private Algorithm algorithm;
@@ -103,7 +90,7 @@ public class Checksum extends DefaultTask {
                 File sumFile = outputFileFor(input);
                 HashCode hashCode = null;
                 try {
-                    hashCode = Files.asByteSource(input).hash(algorithm.hashFunction);
+                    hashCode = Files.asByteSource(input).hash(algorithm.getHashFunction());
                     Files.write(hashCode.toString().getBytes(), sumFile);
                 } catch (IOException e) {
                     throw new GradleException("Trouble creating checksum", e);

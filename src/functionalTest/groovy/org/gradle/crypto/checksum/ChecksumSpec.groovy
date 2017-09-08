@@ -31,10 +31,11 @@ class ChecksumSpec extends Specification {
         buildFile = projectDir.newFile('build.gradle')
         buildFile << """
         plugins {
-          id 'org.gradle.crypto.checksum' version '0.1.0'
+          id 'org.gradle.crypto.checksum' version '1.0.2'
         }
         
         import org.gradle.crypto.checksum.Checksum
+        import org.gradle.crypto.checksum.Algorithm
         import java.nio.file.Paths
         
         task makeAFile {
@@ -92,7 +93,7 @@ class ChecksumSpec extends Specification {
         given:
         buildFile << """
         sumAFile {
-          algorithm = Checksum.Algorithm.$algo
+          algorithm = Algorithm.$algo
         }
         """
         def expectedSumFile = new File(projectDir.getRoot(), 'build/checksums/aFile.txt.' + algo.toLowerCase())
@@ -157,7 +158,7 @@ class ChecksumSpec extends Specification {
         when:
         buildFile << """
         sumAFile {
-            algorithm = Checksum.Algorithm.SHA384
+            algorithm = Algorithm.SHA384
         }
         """
         result = GradleRunner.create()
