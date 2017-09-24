@@ -5,7 +5,7 @@ A Gradle plugin for creating checksums for files in your build.
 
 ```$gradle
 plugins {
-    id 'org.gradle.crypto.checksum' version '1.0.3'
+    id 'org.gradle.crypto.checksum' version '1.1.0'
 }
 
 import org.gradle.crypto.checksum.Checksum
@@ -24,9 +24,9 @@ task createChecksums(type: Checksum, dependsOn: 'generateFiles') {
 When the `createChecksums` task is finished, there will be a file ending in
 `.sha512` for each of the files output by the `generateFiles` task.
 
-Currently, only `SHA256` (default), `SHA384`, and `SHA512` are supported.
-Please file an issue or make a pull request if you need support for some
-other hashing algorithm.
+Currently, only `SHA256` (default), `SHA384`, `SHA512`, and `MD5` are
+supported. Please file an issue or make a pull request if you need support
+for some other hashing algorithm.
 
 By default, the `outputDir` will be set to `project.buildDir + "checksums"`.
 
