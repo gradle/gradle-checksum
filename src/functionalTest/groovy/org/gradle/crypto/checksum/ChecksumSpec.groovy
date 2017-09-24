@@ -31,7 +31,7 @@ class ChecksumSpec extends Specification {
         buildFile = projectDir.newFile('build.gradle')
         buildFile << """
         plugins {
-          id 'org.gradle.crypto.checksum' version '1.0.3'
+          id 'org.gradle.crypto.checksum' version '1.1.0'
         }
         
         import org.gradle.crypto.checksum.Checksum
