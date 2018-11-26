@@ -43,11 +43,14 @@ class IncrementalChecksumSpec extends Specification {
         firstResult.task(':checksums').getOutcome() == TaskOutcome.SUCCESS
 
         when:
+        newFolder('input', 'subdir')
+        newFile('input/subdir/sub-foo.txt') << 'sub-foo'
         newFile('input/baz.txt') << 'baz'
         def secondResult = build('checksum')
 
         then:
         secondResult.task(':checksums').getOutcome() == TaskOutcome.SUCCESS
+        file('checksums/sub-foo.txt.sha256').exists()
         file('checksums/baz.txt.sha256').exists()
     }
 
@@ -63,7 +66,7 @@ class IncrementalChecksumSpec extends Specification {
         projectDir.newFile(fileName)
     }
 
-    private File newFolder(String folder) {
+    private File newFolder(String... folder) {
         projectDir.newFolder(folder)
     }
 
