@@ -102,6 +102,9 @@ public class Checksum extends DefaultTask {
             @Override
             public void execute(InputFileDetails inputFileDetails) {
                 File input = inputFileDetails.getFile();
+                if (input.isDirectory()) {
+                    return;
+                }
                 File sumFile = outputFileFor(input);
                 HashCode hashCode = null;
                 try {
@@ -116,7 +119,11 @@ public class Checksum extends DefaultTask {
         inputs.removed(new Action<InputFileDetails>() {
             @Override
             public void execute(InputFileDetails inputFileDetails) {
-                getProject().delete(outputFileFor(inputFileDetails.getFile()));
+                File input = inputFileDetails.getFile();
+                if (input.isDirectory()) {
+                    return;
+                }
+                getProject().delete(outputFileFor(input));
             }
         });
     }
