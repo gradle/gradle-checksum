@@ -18,7 +18,7 @@ plugins {
     id 'idea'
     id 'java-gradle-plugin'
     id "nebula.facet" version "3.4.0"
-    id 'com.gradle.plugin-publish' version '0.9.7'
+    id 'com.gradle.plugin-publish' version '0.10.0'
 }
 
 group = 'org.gradle.crypto'
