@@ -61,8 +61,8 @@ gradlePlugin {
 }
 
 pluginBundle {
-    website = 'https://github.com/gradle/gradle-checksum'
-    vcsUrl = 'https://github.com/gradle/gradle-checkusm'
+    vcsUrl = 'https://github.com/gradle/gradle-checksum'
+    website = vcsUrl
     plugins {
         checksumPlugin {
             id = 'org.gradle.crypto.checksum'
