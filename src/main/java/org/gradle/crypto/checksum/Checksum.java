@@ -33,6 +33,7 @@ import org.gradle.api.tasks.incremental.InputFileDetails;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 public class Checksum extends DefaultTask {
     private FileCollection files;
@@ -109,7 +110,9 @@ public class Checksum extends DefaultTask {
                 HashCode hashCode = null;
                 try {
                     hashCode = Files.asByteSource(input).hash(algorithm.hashFunction);
-                    Files.write(hashCode.toString().getBytes(), sumFile);
+                    String content = String.format("%s  %s", hashCode.toString(), input.getName());
+
+                    Files.write(content.getBytes(), sumFile);
                 } catch (IOException e) {
                     throw new GradleException("Trouble creating checksum", e);
                 }
