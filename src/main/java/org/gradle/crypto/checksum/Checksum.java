@@ -181,7 +181,9 @@ public class Checksum extends DefaultTask {
                     File sumFile = outputFileFor(outputDirAsFile, change.getFile(), algo);
                     try {
                         HashCode hashCode = Files.asByteSource(change.getFile()).hash(algo.hashFunction);
-                        Files.write(hashCode.toString().getBytes(), sumFile);
+                        String content = String.format("%s  %s", hashCode, change.getFile().getName());
+
+                        Files.write(content.getBytes(), sumFile);
                     } catch (IOException e) {
                         throw new GradleException("Trouble creating checksum", e);
                     }
