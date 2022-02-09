@@ -2,7 +2,7 @@
 A Gradle plugin for creating checksums for files in your build.
 
 # Requirements
-Gradle 4.0 or above from plugin version 1.3.0
+- Gradle 5.0 or above from plugin version 1.3.0 (using [DirectoryProperty](https://docs.gradle.org/current/javadoc/org/gradle/api/model/ObjectFactory.html#directoryProperty--))
 
 # Usage
 

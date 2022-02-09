@@ -21,9 +21,11 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
+import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileSystemOperations;
 import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.*;
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
 import org.gradle.util.GradleVersion;
@@ -43,11 +45,11 @@ public class Checksum extends DefaultTask {
     }
 
     private final ObjectFactory objectFactory;
-    private FileOps fileOps;
+    private final FileOps fileOps;
 
     private FileCollection files;
-    private File outputDir;
-    private Algorithm algorithm;
+    private DirectoryProperty outputDir;
+    private Property<Algorithm> algorithm;
 
     public enum Algorithm {
         MD5(Hashing.md5()),
@@ -65,10 +67,12 @@ public class Checksum extends DefaultTask {
     @Inject
     public Checksum(ObjectFactory objectFactory) {
         this.objectFactory = objectFactory;
-        this.outputDir = new File(getProject().getBuildDir(), "checksums");
-        this.algorithm = Algorithm.SHA256;
+        this.outputDir = objectFactory.directoryProperty().convention(getProject().getLayout().getBuildDirectory().dir("checksums"));
+        this.algorithm = objectFactory.property(Algorithm.class).convention(Algorithm.SHA256);
         if(isFileSystemOperationsSupported()) {
             this.fileOps = objectFactory.newInstance(FileOps.class);
+        } else {
+            this.fileOps = null;
         }
     }
 
@@ -86,51 +90,52 @@ public class Checksum extends DefaultTask {
 
     @Input
     public Algorithm getAlgorithm() {
-        return algorithm;
+        return algorithm.get();
     }
 
     public void setAlgorithm(Algorithm algorithm) {
-        this.algorithm = algorithm;
+        this.algorithm.set(algorithm);
     }
 
     @OutputDirectory
     public File getOutputDir() {
-        return outputDir;
+        return outputDir.get().getAsFile();
     }
 
-    public void setOutputDir(File outputDir) {
-        if (outputDir.exists() && !outputDir.isDirectory()) {
+    public void setOutputDir(File outputDirAsFile) {
+        if (outputDirAsFile.exists() && !outputDirAsFile.isDirectory()) {
             throw new IllegalArgumentException("Output directory must be a directory.");
         }
-        this.outputDir = outputDir;
+        this.outputDir.set(outputDirAsFile);
     }
-
 
     @TaskAction
     public void generateChecksumFiles(IncrementalTaskInputs inputs) throws IOException {
-        if (!outputDir.exists()) {
-            if (!outputDir.mkdirs()) {
-                throw new IOException("Could not create directory:" + outputDir);
+        File outputDirAsFile = getOutputDir();
+        if (!outputDirAsFile.exists()) {
+            if (!outputDirAsFile.mkdirs()) {
+                throw new IOException("Could not create directory:" + outputDirAsFile);
             }
         }
         if (!inputs.isIncremental()) {
             if (isFileSystemOperationsSupported()) {
                 fileOps.getFs().delete(spec ->
-                    spec.delete(allPossibleChecksumFiles())
+                    spec.delete(allPossibleChecksumFiles(outputDirAsFile))
                 );
             } else {
-                getProject().delete(allPossibleChecksumFiles());
+                getProject().delete(allPossibleChecksumFiles(outputDirAsFile));
             }
         }
 
+        Algorithm algo = algorithm.get();
         inputs.outOfDate(inputFileDetails -> {
             File input = inputFileDetails.getFile();
             if (input.isDirectory()) {
                 return;
             }
-            File sumFile = outputFileFor(input);
+            File sumFile = outputFileFor(outputDirAsFile, input, algo);
             try {
-                HashCode hashCode = Files.asByteSource(input).hash(algorithm.hashFunction);
+                HashCode hashCode = Files.asByteSource(input).hash(algo.hashFunction);
                 Files.write(hashCode.toString().getBytes(), sumFile);
             } catch (IOException e) {
                 throw new GradleException("Trouble creating checksum", e);
@@ -144,37 +149,37 @@ public class Checksum extends DefaultTask {
             }
             if (isFileSystemOperationsSupported()) {
                 fileOps.getFs().delete(spec ->
-                    spec.delete(outputFileFor(input))
+                    spec.delete(outputFileFor(outputDirAsFile, input, algo))
                 );
             } else {
-                getProject().delete(outputFileFor(input));
+                getProject().delete(outputFileFor(outputDirAsFile, input, algo));
             }
         });
     }
 
-    private File outputFileFor(File inputFile) {
-        return new File(outputDir, inputFile.getName() + "." + algorithm.toString().toLowerCase());
+    private File outputFileFor(File outputDirAsFile, File inputFile, Algorithm algo) {
+        return new File(outputDirAsFile, inputFile.getName() + "." + algo.toString().toLowerCase());
     }
 
-    private FileCollection allPossibleChecksumFiles() {
+    private FileCollection allPossibleChecksumFiles(File outputDirAsFile) {
         FileCollection possibleFiles = null;
         for (Algorithm algo : Algorithm.values()) {
             if (possibleFiles == null) {
-                possibleFiles = filesFor(algo);
+                possibleFiles = filesFor(outputDirAsFile, algo);
             } else {
-                possibleFiles = possibleFiles.plus(filesFor(algo));
+                possibleFiles = possibleFiles.plus(filesFor(outputDirAsFile, algo));
             }
         }
         return possibleFiles;
     }
 
-    private FileCollection filesFor(final Algorithm algo) {
+    private FileCollection filesFor(File outputDirAsFile, Algorithm algo) {
         if(isFileTreeFromObjectFactorySupported()){
-            return objectFactory.fileTree().from(outputDir).filter(file ->
+            return objectFactory.fileTree().from(outputDirAsFile).filter(file ->
                 file.getName().endsWith(algo.toString().toLowerCase())
             );
         } else {
-            return getProject().fileTree(getOutputDir(), files -> files.include("**/*." + algo.toString().toLowerCase()));
+            return getProject().fileTree(outputDirAsFile, files -> files.include("**/*." + algo.toString().toLowerCase()));
         }
     }
 
