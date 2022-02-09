@@ -33,8 +33,6 @@ import org.gradle.util.GradleVersion;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.stream.Collectors;
 
 @CacheableTask
 public class Checksum extends DefaultTask {
@@ -88,18 +86,38 @@ public class Checksum extends DefaultTask {
         this.files = files;
     }
 
-    @Input
+    /**
+     * @return algorithm
+     * @deprecated Use getAlgorithmProperty() instead
+     */
+    @Deprecated
+    @Internal
     public Algorithm getAlgorithm() {
         return algorithm.get();
+    }
+
+    @Input
+    public Property<Algorithm> getAlgorithmProperty() {
+        return algorithm;
     }
 
     public void setAlgorithm(Algorithm algorithm) {
         this.algorithm.set(algorithm);
     }
 
-    @OutputDirectory
+    /**
+     * @return output directory
+     * @deprecated Use getOutputDirProperty() instead
+     */
+    @Deprecated
+    @Internal
     public File getOutputDir() {
         return outputDir.get().getAsFile();
+    }
+
+    @OutputDirectory
+    public DirectoryProperty getOutputDirProperty() {
+        return outputDir;
     }
 
     public void setOutputDir(File outputDirAsFile) {
