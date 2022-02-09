@@ -65,8 +65,12 @@ public class Checksum extends DefaultTask {
     @Inject
     public Checksum(ObjectFactory objectFactory) {
         this.objectFactory = objectFactory;
-        this.outputDir = objectFactory.directoryProperty().convention(getProject().getLayout().getBuildDirectory().dir("checksums"));
-        this.algorithm = objectFactory.property(Algorithm.class).convention(Algorithm.SHA256);
+        this.outputDir = objectFactory.directoryProperty();
+        //TODO use convention when stopping Gradle 5.0 reports
+        outputDir.set(getProject().getLayout().getBuildDirectory().dir("checksums").get());
+        this.algorithm = objectFactory.property(Algorithm.class);
+        //TODO use convention when stopping Gradle 5.0 reports
+        algorithm.set(Algorithm.SHA256);
         if(isFileSystemOperationsSupported()) {
             this.fileOps = objectFactory.newInstance(FileOps.class);
         } else {
@@ -97,7 +101,7 @@ public class Checksum extends DefaultTask {
     }
 
     @Input
-    public Property<Algorithm> getAlgorithmProperty() {
+    public Property<Algorithm> getChecksumAlgorithm() {
         return algorithm;
     }
 
@@ -116,7 +120,7 @@ public class Checksum extends DefaultTask {
     }
 
     @OutputDirectory
-    public DirectoryProperty getOutputDirProperty() {
+    public DirectoryProperty getOutputDirectory() {
         return outputDir;
     }
 
@@ -127,6 +131,7 @@ public class Checksum extends DefaultTask {
         this.outputDir.set(outputDirAsFile);
     }
 
+    //TODO Migrate to InputChanges
     @TaskAction
     public void generateChecksumFiles(IncrementalTaskInputs inputs) throws IOException {
         File outputDirAsFile = getOutputDir();
@@ -209,6 +214,7 @@ public class Checksum extends DefaultTask {
         return isGradle6OrAbove();
     }
 
+    //TODO remove version specific logic with plugin version 2.X
     private boolean isGradle6OrAbove(){
         return GradleVersion.current().compareTo(GradleVersion.version("6.0")) >= 0;
     }
