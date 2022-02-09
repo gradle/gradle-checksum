@@ -18,9 +18,9 @@ task generateFiles {
 }
 
 task createChecksums(type: Checksum, dependsOn: 'generateFiles') {
-  files = generateFiles.outputs.files
-  outputDir = new File(project.buildDir, "generatedChecksums")
-  algorithm = Checksum.Algorithm.SHA512
+  inputFiles.setFrom(generateFiles.outputs.files)
+  outputDirectory.set(layout.buildDirectory.dir("foo/checksums"))
+  checksumAlgorithm.set(Checksum.Algorithm.SHA512)
 }
 ```
 
@@ -31,7 +31,7 @@ Currently, only `SHA256` (default), `SHA384`, `SHA512`, and `MD5` are
 supported. Please file an issue or make a pull request if you need support
 for some other hashing algorithm.
 
-By default, the `outputDir` will be set to `project.buildDir + "checksums"`.
+By default, the `outputDirectory` will be set to `project.buildDir + "checksums"`.
 
 The task is incremental at the file level, and will only alter files in the
 output directory which end with file extensions managed by this task
