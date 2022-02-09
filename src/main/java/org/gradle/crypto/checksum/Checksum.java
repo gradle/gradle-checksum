@@ -21,6 +21,7 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
+import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileSystemOperations;
@@ -45,9 +46,9 @@ public class Checksum extends DefaultTask {
     private final ObjectFactory objectFactory;
     private final FileOps fileOps;
 
-    private FileCollection files;
-    private DirectoryProperty outputDir;
-    private Property<Algorithm> algorithm;
+    private final DirectoryProperty outputDir;
+    private final Property<Algorithm> algorithm;
+    private final ConfigurableFileCollection files;
 
     public enum Algorithm {
         MD5(Hashing.md5()),
@@ -67,10 +68,15 @@ public class Checksum extends DefaultTask {
         this.objectFactory = objectFactory;
         this.outputDir = objectFactory.directoryProperty();
         //TODO use convention when stopping Gradle 5.0 reports
-        outputDir.set(getProject().getLayout().getBuildDirectory().dir("checksums").get());
+        outputDir.set(getProject().getLayout().getBuildDirectory().dir("checksums"));
         this.algorithm = objectFactory.property(Algorithm.class);
         //TODO use convention when stopping Gradle 5.0 reports
         algorithm.set(Algorithm.SHA256);
+        if(isFileCollectionFromObjectFactorySupported()) {
+            this.files = objectFactory.fileCollection();
+        } else {
+            this.files = getProject().files();
+        }
         if(isFileSystemOperationsSupported()) {
             this.fileOps = objectFactory.newInstance(FileOps.class);
         } else {
@@ -82,17 +88,32 @@ public class Checksum extends DefaultTask {
     @SkipWhenEmpty
     @IgnoreEmptyDirectories
     @PathSensitive(PathSensitivity.RELATIVE)
+    public ConfigurableFileCollection getInputFiles() {
+        return files;
+    }
+
+    /**
+     * @return files to compute checksum for
+     * @deprecated Use getInputFiles() instead
+     */
+    @Deprecated
+    @Internal
     public FileCollection getFiles() {
         return files;
     }
 
+    /**
+     * @param files files to compute checksum for
+     * @deprecated Use getInputFiles().setFrom() instead
+     */
+    @Deprecated
     public void setFiles(FileCollection files) {
-        this.files = files;
+        this.files.setFrom(files);
     }
 
     /**
      * @return algorithm
-     * @deprecated Use getAlgorithmProperty() instead
+     * @deprecated Use getChecksumAlgorithm() instead
      */
     @Deprecated
     @Internal
@@ -105,17 +126,26 @@ public class Checksum extends DefaultTask {
         return algorithm;
     }
 
+    /**
+     * @param algorithm algorithm to set
+     * @deprecated Use getChecksumAlgorithm().set() instead
+     */
+    @Deprecated
     public void setAlgorithm(Algorithm algorithm) {
         this.algorithm.set(algorithm);
     }
 
     /**
      * @return output directory
-     * @deprecated Use getOutputDirProperty() instead
+     * @deprecated Use getOutputDirectory() instead
      */
     @Deprecated
     @Internal
     public File getOutputDir() {
+        return getOutputDirAsFile();
+    }
+
+    private File getOutputDirAsFile(){
         return outputDir.get().getAsFile();
     }
 
@@ -124,17 +154,19 @@ public class Checksum extends DefaultTask {
         return outputDir;
     }
 
+    /**
+     * @param outputDirAsFile output directory to set
+     * @deprecated Use getOutputDirectory().set() instead
+     */
+    @Deprecated
     public void setOutputDir(File outputDirAsFile) {
-        if (outputDirAsFile.exists() && !outputDirAsFile.isDirectory()) {
-            throw new IllegalArgumentException("Output directory must be a directory.");
-        }
         this.outputDir.set(outputDirAsFile);
     }
 
     //TODO Migrate to InputChanges
     @TaskAction
     public void generateChecksumFiles(IncrementalTaskInputs inputs) throws IOException {
-        File outputDirAsFile = getOutputDir();
+        File outputDirAsFile = getOutputDirAsFile();
         if (!outputDirAsFile.exists()) {
             if (!outputDirAsFile.mkdirs()) {
                 throw new IOException("Could not create directory:" + outputDirAsFile);
@@ -212,6 +244,10 @@ public class Checksum extends DefaultTask {
 
     private boolean isFileTreeFromObjectFactorySupported(){
         return isGradle6OrAbove();
+    }
+
+    private boolean isFileCollectionFromObjectFactorySupported(){
+        return GradleVersion.current().compareTo(GradleVersion.version("5.3")) >= 0;
     }
 
     //TODO remove version specific logic with plugin version 2.X
