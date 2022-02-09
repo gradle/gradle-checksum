@@ -31,7 +31,10 @@ import org.gradle.util.GradleVersion;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
+@CacheableTask
 public class Checksum extends DefaultTask {
 
     interface FileOps {
@@ -70,6 +73,9 @@ public class Checksum extends DefaultTask {
     }
 
     @InputFiles
+    @SkipWhenEmpty
+    @IgnoreEmptyDirectories
+    @PathSensitive(PathSensitivity.RELATIVE)
     public FileCollection getFiles() {
         return files;
     }
