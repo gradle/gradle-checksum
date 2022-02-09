@@ -19,22 +19,29 @@ import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
-import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
-import org.gradle.api.file.ConfigurableFileTree;
 import org.gradle.api.file.FileCollection;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.OutputDirectory;
-import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.file.FileSystemOperations;
+import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.tasks.*;
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
-import org.gradle.api.tasks.incremental.InputFileDetails;
+import org.gradle.util.GradleVersion;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 
 public class Checksum extends DefaultTask {
+
+    interface FileOps {
+        @Inject
+        FileSystemOperations getFs();
+    }
+
+    private final ObjectFactory objectFactory;
+    private FileOps fileOps;
+
     private FileCollection files;
     private File outputDir;
     private Algorithm algorithm;
@@ -52,9 +59,14 @@ public class Checksum extends DefaultTask {
         }
     }
 
-    public Checksum() {
-        outputDir = new File(getProject().getBuildDir(), "checksums");
-        algorithm = Algorithm.SHA256;
+    @Inject
+    public Checksum(ObjectFactory objectFactory) {
+        this.objectFactory = objectFactory;
+        this.outputDir = new File(getProject().getBuildDir(), "checksums");
+        this.algorithm = Algorithm.SHA256;
+        if(isFileSystemOperationsSupported()) {
+            this.fileOps = objectFactory.newInstance(FileOps.class);
+        }
     }
 
     @InputFiles
@@ -87,49 +99,55 @@ public class Checksum extends DefaultTask {
         this.outputDir = outputDir;
     }
 
+
     @TaskAction
     public void generateChecksumFiles(IncrementalTaskInputs inputs) throws IOException {
-        if (!getOutputDir().exists()) {
-            if (!getOutputDir().mkdirs()) {
-                throw new IOException("Could not create directory:" + getOutputDir());
+        if (!outputDir.exists()) {
+            if (!outputDir.mkdirs()) {
+                throw new IOException("Could not create directory:" + outputDir);
             }
         }
         if (!inputs.isIncremental()) {
-            getProject().delete(allPossibleChecksumFiles());
+            if (isFileSystemOperationsSupported()) {
+                fileOps.getFs().delete(spec ->
+                    spec.delete(allPossibleChecksumFiles())
+                );
+            } else {
+                getProject().delete(allPossibleChecksumFiles());
+            }
         }
 
-        inputs.outOfDate(new Action<InputFileDetails>() {
-            @Override
-            public void execute(InputFileDetails inputFileDetails) {
-                File input = inputFileDetails.getFile();
-                if (input.isDirectory()) {
-                    return;
-                }
-                File sumFile = outputFileFor(input);
-                HashCode hashCode = null;
-                try {
-                    hashCode = Files.asByteSource(input).hash(algorithm.hashFunction);
-                    Files.write(hashCode.toString().getBytes(), sumFile);
-                } catch (IOException e) {
-                    throw new GradleException("Trouble creating checksum", e);
-                }
+        inputs.outOfDate(inputFileDetails -> {
+            File input = inputFileDetails.getFile();
+            if (input.isDirectory()) {
+                return;
+            }
+            File sumFile = outputFileFor(input);
+            try {
+                HashCode hashCode = Files.asByteSource(input).hash(algorithm.hashFunction);
+                Files.write(hashCode.toString().getBytes(), sumFile);
+            } catch (IOException e) {
+                throw new GradleException("Trouble creating checksum", e);
             }
         });
 
-        inputs.removed(new Action<InputFileDetails>() {
-            @Override
-            public void execute(InputFileDetails inputFileDetails) {
-                File input = inputFileDetails.getFile();
-                if (input.isDirectory()) {
-                    return;
-                }
+        inputs.removed(inputFileDetails -> {
+            File input = inputFileDetails.getFile();
+            if (input.isDirectory()) {
+                return;
+            }
+            if (isFileSystemOperationsSupported()) {
+                fileOps.getFs().delete(spec ->
+                    spec.delete(outputFileFor(input))
+                );
+            } else {
                 getProject().delete(outputFileFor(input));
             }
         });
     }
 
     private File outputFileFor(File inputFile) {
-        return new File(getOutputDir(), inputFile.getName() + "." + algorithm.toString().toLowerCase());
+        return new File(outputDir, inputFile.getName() + "." + algorithm.toString().toLowerCase());
     }
 
     private FileCollection allPossibleChecksumFiles() {
@@ -145,11 +163,25 @@ public class Checksum extends DefaultTask {
     }
 
     private FileCollection filesFor(final Algorithm algo) {
-        return getProject().fileTree(getOutputDir(), new Action<ConfigurableFileTree>() {
-            @Override
-            public void execute(ConfigurableFileTree files) {
-                files.include("**/*." + algo.toString().toLowerCase());
-            }
-        });
+        if(isFileTreeFromObjectFactorySupported()){
+            return objectFactory.fileTree().from(outputDir).filter(file ->
+                file.getName().endsWith(algo.toString().toLowerCase())
+            );
+        } else {
+            return getProject().fileTree(getOutputDir(), files -> files.include("**/*." + algo.toString().toLowerCase()));
+        }
     }
+
+    private boolean isFileSystemOperationsSupported(){
+        return isGradle6OrAbove();
+    }
+
+    private boolean isFileTreeFromObjectFactorySupported(){
+        return isGradle6OrAbove();
+    }
+
+    private boolean isGradle6OrAbove(){
+        return GradleVersion.current().compareTo(GradleVersion.version("6.0")) >= 0;
+    }
+
 }

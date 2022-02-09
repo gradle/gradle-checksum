@@ -1,11 +1,14 @@
 # gradle-checksum
 A Gradle plugin for creating checksums for files in your build.
 
+# Requirements
+Gradle 4.0 or above from plugin version 1.3.0
+
 # Usage
 
 ```$gradle
 plugins {
-    id 'org.gradle.crypto.checksum' version '1.1.0'
+    id 'org.gradle.crypto.checksum' version '1.3.0'
 }
 
 import org.gradle.crypto.checksum.Checksum
