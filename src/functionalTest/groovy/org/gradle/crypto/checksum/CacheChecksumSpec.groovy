@@ -50,7 +50,7 @@ class CacheChecksumSpec extends Specification {
         new File(buildDirRun2,'checksums/baz.txt.sha256').exists()
 
         where:
-        gradleVersion << ['5.0', '6.6', '7.4']
+        gradleVersion << ['5.4', '6.6', '7.4']
     }
 
     def 'can use configuration cache on #gradleVersion'() {

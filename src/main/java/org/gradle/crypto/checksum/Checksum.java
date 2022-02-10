@@ -21,15 +21,12 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
-import org.gradle.api.file.ConfigurableFileCollection;
-import org.gradle.api.file.DirectoryProperty;
-import org.gradle.api.file.FileCollection;
-import org.gradle.api.file.FileSystemOperations;
+import org.gradle.api.file.*;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.*;
-import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
 import org.gradle.util.GradleVersion;
+import org.gradle.work.InputChanges;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -66,17 +63,9 @@ public class Checksum extends DefaultTask {
     @Inject
     public Checksum(ObjectFactory objectFactory) {
         this.objectFactory = objectFactory;
-        this.outputDir = objectFactory.directoryProperty();
-        //TODO use convention when stopping Gradle 5.0 reports
-        outputDir.set(getProject().getLayout().getBuildDirectory().dir("checksums"));
-        this.algorithm = objectFactory.property(Algorithm.class);
-        //TODO use convention when stopping Gradle 5.0 reports
-        algorithm.set(Algorithm.SHA256);
-        if(isFileCollectionFromObjectFactorySupported()) {
-            this.files = objectFactory.fileCollection();
-        } else {
-            this.files = getProject().files();
-        }
+        this.outputDir = objectFactory.directoryProperty().convention(getProject().getLayout().getBuildDirectory().dir("checksums"));
+        this.algorithm = objectFactory.property(Algorithm.class).convention(Algorithm.SHA256);
+        this.files = objectFactory.fileCollection();
         if(isFileSystemOperationsSupported()) {
             this.fileOps = objectFactory.newInstance(FileOps.class);
         } else {
@@ -163,16 +152,15 @@ public class Checksum extends DefaultTask {
         this.outputDir.set(outputDirAsFile);
     }
 
-    //TODO Migrate to InputChanges
     @TaskAction
-    public void generateChecksumFiles(IncrementalTaskInputs inputs) throws IOException {
+    public void generateChecksumFiles(InputChanges inputChanges) throws IOException {
         File outputDirAsFile = getOutputDirAsFile();
         if (!outputDirAsFile.exists()) {
             if (!outputDirAsFile.mkdirs()) {
                 throw new IOException("Could not create directory:" + outputDirAsFile);
             }
         }
-        if (!inputs.isIncremental()) {
+        if (!inputChanges.isIncremental()) {
             if (isFileSystemOperationsSupported()) {
                 fileOps.getFs().delete(spec ->
                     spec.delete(allPossibleChecksumFiles(outputDirAsFile))
@@ -183,31 +171,30 @@ public class Checksum extends DefaultTask {
         }
 
         Algorithm algo = algorithm.get();
-        inputs.outOfDate(inputFileDetails -> {
-            File input = inputFileDetails.getFile();
-            if (input.isDirectory()) {
-                return;
-            }
-            File sumFile = outputFileFor(outputDirAsFile, input, algo);
-            try {
-                HashCode hashCode = Files.asByteSource(input).hash(algo.hashFunction);
-                Files.write(hashCode.toString().getBytes(), sumFile);
-            } catch (IOException e) {
-                throw new GradleException("Trouble creating checksum", e);
-            }
-        });
 
-        inputs.removed(inputFileDetails -> {
-            File input = inputFileDetails.getFile();
-            if (input.isDirectory()) {
-                return;
-            }
-            if (isFileSystemOperationsSupported()) {
-                fileOps.getFs().delete(spec ->
-                    spec.delete(outputFileFor(outputDirAsFile, input, algo))
-                );
-            } else {
-                getProject().delete(outputFileFor(outputDirAsFile, input, algo));
+        inputChanges.getFileChanges(files).forEach(change -> {
+            if (change.getFileType() == FileType.DIRECTORY) return;
+
+            switch(change.getChangeType()){
+                case ADDED:
+                case MODIFIED:
+                    File sumFile = outputFileFor(outputDirAsFile, change.getFile(), algo);
+                    try {
+                        HashCode hashCode = Files.asByteSource(change.getFile()).hash(algo.hashFunction);
+                        Files.write(hashCode.toString().getBytes(), sumFile);
+                    } catch (IOException e) {
+                        throw new GradleException("Trouble creating checksum", e);
+                    }
+                    break;
+                case REMOVED:
+                    if (isFileSystemOperationsSupported()) {
+                        fileOps.getFs().delete(spec ->
+                            spec.delete(outputFileFor(outputDirAsFile, change.getFile(), algo))
+                        );
+                    } else {
+                        getProject().delete(outputFileFor(outputDirAsFile, change.getFile(), algo));
+                    }
+                    break;
             }
         });
     }
@@ -246,11 +233,6 @@ public class Checksum extends DefaultTask {
         return isGradle6OrAbove();
     }
 
-    private boolean isFileCollectionFromObjectFactorySupported(){
-        return GradleVersion.current().compareTo(GradleVersion.version("5.3")) >= 0;
-    }
-
-    //TODO remove version specific logic with plugin version 2.X
     private boolean isGradle6OrAbove(){
         return GradleVersion.current().compareTo(GradleVersion.version("6.0")) >= 0;
     }
