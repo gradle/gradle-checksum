@@ -22,9 +22,9 @@ class IncrementalChecksumSpec extends Specification {
             plugins {
                 id 'org.gradle.crypto.checksum' version '1.1.0'
             }
-        
+
             import org.gradle.crypto.checksum.Checksum
-            
+
             task checksums(type: Checksum) {
                 files = fileTree("input") {
                     include "**/*.txt"
