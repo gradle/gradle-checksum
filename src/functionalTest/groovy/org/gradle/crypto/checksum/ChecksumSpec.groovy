@@ -31,19 +31,19 @@ class ChecksumSpec extends Specification {
         buildFile = projectDir.newFile('build.gradle')
         buildFile << """
         plugins {
-          id 'org.gradle.crypto.checksum' version '1.1.0'
+          id 'org.gradle.crypto.checksum'
         }
-        
+
         import org.gradle.crypto.checksum.Checksum
         import java.nio.file.Paths
-        
+
         task makeAFile {
           doLast {
             file('build').mkdir()
             file(Paths.get('build', 'aFile.txt')) << 'Hello, Checksum!'
           }
         }
-        
+
         task sumAFile(type: Checksum, dependsOn: 'makeAFile') {
           files = files(Paths.get('build', 'aFile.txt'))
         }
@@ -111,10 +111,10 @@ class ChecksumSpec extends Specification {
 
         where:
         algo     | sum
-        'MD5'    | '5691b5ad8da499aa156eda19eafa8ca3  aFile.txt'
-        'SHA256' | '17dc1d7c1912574351e67069fef64e603d435c7b04197ddb95237cc93ebbe973  aFile.txt'
-        'SHA384' | '8c92bd249565af6c1c323450e7f2834a306da1295fa305cfece7c1af1617df6e0213f8b81c8c2765407908f7d2065ced  aFile.txt'
-        'SHA512' | '32ae12e4d047303297158cd23a93ba5d7f531b0b8597949a800e0ed57c0d0f6463563f9cb16b99f208bca97cd7471cc4d3ae1ab2b88c026016975dff68c39eb9  aFile.txt'
+        'MD5'    | '5691b5ad8da499aa156eda19eafa8ca3'
+        'SHA256' | '17dc1d7c1912574351e67069fef64e603d435c7b04197ddb95237cc93ebbe973'
+        'SHA384' | '8c92bd249565af6c1c323450e7f2834a306da1295fa305cfece7c1af1617df6e0213f8b81c8c2765407908f7d2065ced'
+        'SHA512' | '32ae12e4d047303297158cd23a93ba5d7f531b0b8597949a800e0ed57c0d0f6463563f9cb16b99f208bca97cd7471cc4d3ae1ab2b88c026016975dff68c39eb9'
     }
 
     def 'supports overlapping output directories'() {
@@ -173,4 +173,28 @@ class ChecksumSpec extends Specification {
         expected384SumFile.exists()
         otherFile.exists()
     }
+
+    def 'can append filename to checksum'() {
+        given:
+        buildFile << """
+        sumAFile {
+          checksumAlgorithm.set(Checksum.Algorithm.SHA512)
+          appendFileNameToChecksum.set(true)
+        }
+        """
+        def expectedSumFile = new File(projectDir.getRoot(), 'build/checksums/aFile.txt.sha512')
+
+        when:
+        def result = GradleRunner.create()
+            .withProjectDir(projectDir.root)
+            .withArguments('sumAFile')
+            .withPluginClasspath()
+            .build()
+
+        then:
+        result.task(':sumAFile').getOutcome() == TaskOutcome.SUCCESS
+        expectedSumFile.exists()
+        expectedSumFile.getText('UTF8') == '32ae12e4d047303297158cd23a93ba5d7f531b0b8597949a800e0ed57c0d0f6463563f9cb16b99f208bca97cd7471cc4d3ae1ab2b88c026016975dff68c39eb9  aFile.txt'
+    }
+
 }

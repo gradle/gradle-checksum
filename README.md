@@ -22,6 +22,7 @@ task createChecksums(type: Checksum, dependsOn: 'generateFiles') {
   inputFiles.setFrom(generateFiles.outputs.files)
   outputDirectory.set(layout.buildDirectory.dir("foo/checksums"))
   checksumAlgorithm.set(Checksum.Algorithm.SHA512)
+  appendFileNameToChecksum.set(true)
 }
 ```
 
@@ -31,6 +32,14 @@ When the `createChecksums` task is finished, there will be a file ending in
 Currently, only `SHA256` (default), `SHA384`, `SHA512`, and `MD5` are
 supported. Please file an issue or make a pull request if you need support
 for some other hashing algorithm.
+
+If you want to automate the checksum verification with any of `md5sum`, `sha256sum`, `sha384sum` or `sha512sum` tool,
+set the `appendFileNameToChecksum` flag to `true` (`false` by default):
+
+```
+> sha512sum -c ../build/checksums/foo.txt.sha512
+foo.txt: OK
+```
 
 By default, the `outputDirectory` will be set to `project.buildDir + "checksums"`.
 
