@@ -2,8 +2,8 @@
 A Gradle plugin for creating checksums for files in your build.
 
 # Requirements
-- Version 1.3.0 requires Gradle 5.0 or above
 - Version 1.4.0 requires Gradle 5.4 or above
+- Version 1.3.0 requires Gradle 5.0 or above
 
 # Usage
 
