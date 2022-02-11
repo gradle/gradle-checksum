@@ -31,6 +31,7 @@ import org.gradle.work.InputChanges;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 @CacheableTask
 public class Checksum extends DefaultTask {
@@ -46,6 +47,7 @@ public class Checksum extends DefaultTask {
     private final DirectoryProperty outputDir;
     private final Property<Algorithm> algorithm;
     private final ConfigurableFileCollection files;
+    private final Property<Boolean> appendFileNameToChecksum;
 
     public enum Algorithm {
         MD5(Hashing.md5()),
@@ -66,6 +68,7 @@ public class Checksum extends DefaultTask {
         this.outputDir = objectFactory.directoryProperty().convention(getProject().getLayout().getBuildDirectory().dir("checksums"));
         this.algorithm = objectFactory.property(Algorithm.class).convention(Algorithm.SHA256);
         this.files = objectFactory.fileCollection();
+        this.appendFileNameToChecksum = objectFactory.property(Boolean.class).convention(Boolean.FALSE);
         if(isFileSystemOperationsSupported()) {
             this.fileOps = objectFactory.newInstance(FileOps.class);
         } else {
@@ -152,6 +155,11 @@ public class Checksum extends DefaultTask {
         this.outputDir.set(outputDirAsFile);
     }
 
+    @Input
+    public Property<Boolean> getAppendFileNameToChecksum() {
+        return appendFileNameToChecksum;
+    }
+
     @TaskAction
     public void generateChecksumFiles(InputChanges inputChanges) throws IOException {
         File outputDirAsFile = getOutputDirAsFile();
@@ -170,20 +178,23 @@ public class Checksum extends DefaultTask {
             }
         }
 
-        Algorithm algo = algorithm.get();
-
         inputChanges.getFileChanges(files).forEach(change -> {
             if (change.getFileType() == FileType.DIRECTORY) return;
 
+            Algorithm algo = algorithm.get();
             switch(change.getChangeType()){
                 case ADDED:
                 case MODIFIED:
                     File sumFile = outputFileFor(outputDirAsFile, change.getFile(), algo);
                     try {
                         HashCode hashCode = Files.asByteSource(change.getFile()).hash(algo.hashFunction);
-                        String content = String.format("%s  %s", hashCode.toString(), input.getName());
-
-                        Files.write(content.getBytes(), sumFile);
+                        String content;
+                        if(appendFileNameToChecksum.get()){
+                            content = String.format("%s  %s", hashCode, change.getFile().getName());
+                        } else {
+                            content = hashCode.toString();
+                        }
+                        Files.write(content.getBytes(StandardCharsets.UTF_8), sumFile);
                     } catch (IOException e) {
                         throw new GradleException("Trouble creating checksum", e);
                     }
