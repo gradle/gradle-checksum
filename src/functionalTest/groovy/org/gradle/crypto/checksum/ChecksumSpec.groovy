@@ -31,19 +31,19 @@ class ChecksumSpec extends Specification {
         buildFile = projectDir.newFile('build.gradle')
         buildFile << """
         plugins {
-          id 'org.gradle.crypto.checksum' version '1.1.0'
+          id 'org.gradle.crypto.checksum'
         }
-        
+
         import org.gradle.crypto.checksum.Checksum
         import java.nio.file.Paths
-        
+
         task makeAFile {
           doLast {
             file('build').mkdir()
             file(Paths.get('build', 'aFile.txt')) << 'Hello, Checksum!'
           }
         }
-        
+
         task sumAFile(type: Checksum, dependsOn: 'makeAFile') {
           files = files(Paths.get('build', 'aFile.txt'))
         }
@@ -173,4 +173,28 @@ class ChecksumSpec extends Specification {
         expected384SumFile.exists()
         otherFile.exists()
     }
+
+    def 'can append filename to checksum'() {
+        given:
+        buildFile << """
+        sumAFile {
+          checksumAlgorithm.set(Checksum.Algorithm.SHA512)
+          appendFileNameToChecksum.set(true)
+        }
+        """
+        def expectedSumFile = new File(projectDir.getRoot(), 'build/checksums/aFile.txt.sha512')
+
+        when:
+        def result = GradleRunner.create()
+            .withProjectDir(projectDir.root)
+            .withArguments('sumAFile')
+            .withPluginClasspath()
+            .build()
+
+        then:
+        result.task(':sumAFile').getOutcome() == TaskOutcome.SUCCESS
+        expectedSumFile.exists()
+        expectedSumFile.getText('UTF8') == '32ae12e4d047303297158cd23a93ba5d7f531b0b8597949a800e0ed57c0d0f6463563f9cb16b99f208bca97cd7471cc4d3ae1ab2b88c026016975dff68c39eb9  aFile.txt'
+    }
+
 }
