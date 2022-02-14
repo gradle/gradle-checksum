@@ -33,7 +33,8 @@ Currently, only `SHA256` (default), `SHA384`, `SHA512`, and `MD5` are
 supported. Please file an issue or make a pull request if you need support
 for some other hashing algorithm.
 
-If you want to automate the checksum verification with any of `md5sum`, `sha256sum`, `sha384sum` or `sha512sum` tool,
+If you want to append the filename to the checksum value, set `appendFileNameToChecksum` to true.
+This makes it easier to automate the checksum verification with the `md5sum`, `sha256sum`, `sha384sum` or `sha512sum` tools.
 set the `appendFileNameToChecksum` flag to `true` (`false` by default):
 
 ```
