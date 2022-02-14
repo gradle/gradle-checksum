@@ -20,7 +20,6 @@ import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import org.gradle.api.DefaultTask;
-import org.gradle.api.GradleException;
 import org.gradle.api.file.*;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
@@ -196,7 +195,7 @@ public class Checksum extends DefaultTask {
                         }
                         Files.write(content.getBytes(StandardCharsets.UTF_8), sumFile);
                     } catch (IOException e) {
-                        throw new GradleException("Trouble creating checksum", e);
+                        throw new IllegalStateException("Error creating checksum", e);
                     }
                     break;
                 case REMOVED:
